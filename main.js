@@ -66,28 +66,34 @@ function handleOrientation(event) {
     sensorData = { beta, gamma };
 
     // Normalize and scale the input
-    // Gamma (left/right): -90 to 90 -> -1 to 1
-    const tiltX = gamma / 90;
+    // Increase sensitivity: Max movement at 45 degrees tilt
+    const sensitivity = 45;
 
-    // Beta (front/back): -90 to 90 -> -1 to 1
-    // We use 90 here to make it more responsive than 180
-    const tiltY = beta / 90;
+    let tiltX = gamma / sensitivity;
+    let tiltY = beta / sensitivity;
+
+    // Clamp to ensure we don't overshoot if user tilts > 45 degrees
+    tiltX = Math.max(-1, Math.min(1, tiltX));
+    tiltY = Math.max(-1, Math.min(1, tiltY));
 
     const { width, height } = dimensions;
     const centerX = width / 2;
     const centerY = height / 2;
 
     // Responsive movement scale
-    const moveScale = width * 0.35;
+    // X axis uses width (side-to-side)
+    const moveScaleX = width * 0.45;
+    // Y axis uses height (vertical) - increased to allow much more distortion on tall mobile screens
+    const moveScaleY = height * 0.4;
 
     // Update targets based on tilt
     // P1 moves with tilt
-    state.p1.target.x = centerX + tiltX * moveScale;
-    state.p1.target.y = centerY + tiltY * moveScale;
+    state.p1.target.x = centerX + tiltX * moveScaleX;
+    state.p1.target.y = centerY + tiltY * moveScaleY;
 
     // P2 mirrors P1
-    state.p2.target.x = centerX - tiltX * moveScale;
-    state.p2.target.y = centerY - tiltY * moveScale;
+    state.p2.target.x = centerX - tiltX * moveScaleX;
+    state.p2.target.y = centerY - tiltY * moveScaleY;
 }
 
 function requestSensorAccess() {
