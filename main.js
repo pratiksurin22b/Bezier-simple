@@ -52,14 +52,15 @@ function handleOrientation(event) {
 
     const { beta, gamma } = event; // beta: front-back tilt, gamma: left-right tilt
 
-    // Normalize and scale the input
+    // Normalize and scale the input, reducing sensitivity
     const tiltX = (gamma / 90); // Range: -1 to 1
-    const tiltY = (beta / 90);  // Range: -1 to 1
+    const tiltY = (beta / 180);  // Range: -0.5 to 0.5 (less sensitive on this axis)
 
     const { width, height } = dimensions;
     const centerX = width / 2;
     const centerY = height / 2;
-    const moveScale = 200; // How much the points move
+    // Make the movement scale responsive to the screen width
+    const moveScale = width * 0.4;
 
     // Update targets based on tilt
     state.p1.target.x = centerX + tiltX * moveScale;
@@ -123,6 +124,17 @@ function resetAndStart() {
         animationFrameId = null;
     }
     lastTime = 0;
+
+    // --- Dynamic Sizing ---
+    const isMobile = window.innerWidth <= 768;
+    dimensions.width = isMobile ? window.innerWidth : window.innerWidth - 350;
+    dimensions.height = window.innerHeight;
+
+    // Adjust line length for mobile
+    if (isMobile) {
+        CONFIG.lineLength = dimensions.width * 0.6; // 60% of screen width
+        lineLengthInput.value = CONFIG.lineLength; // Update slider
+    }
 
     // Reset canvas and anchor points
     canvas.width = dimensions.width;
@@ -318,9 +330,7 @@ function updateInfoPanel() {
 
 // --- Event Handlers ---
 window.addEventListener('resize', () => {
-    const isMobile = window.innerWidth <= 768;
-    dimensions.width = isMobile ? window.innerWidth : window.innerWidth - 350;
-    dimensions.height = window.innerHeight;
+    // The resetAndStart function will handle the resizing logic
     resetAndStart();
 });
 
