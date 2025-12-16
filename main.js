@@ -47,31 +47,55 @@ sidebarToggle.addEventListener('click', () => {
 });
 
 // --- Sensor Handling ---
+let sensorData = { beta: 0, gamma: 0 };
+
 function handleOrientation(event) {
     if (!isSensorControlActive) return;
 
-    const { beta, gamma } = event; // beta: front-back tilt, gamma: left-right tilt
+    let { beta, gamma } = event;
 
-    // Normalize and scale the input, reducing sensitivity
-    const tiltX = (gamma / 90); // Range: -1 to 1
-    const tiltY = (beta / 180);  // Range: -0.5 to 0.5 (less sensitive on this axis)
+    // Handle null values
+    if (beta === null || gamma === null) return;
+
+    // Clamp values to avoid extreme flipping
+    if (beta > 90) beta = 90;
+    if (beta < -90) beta = -90;
+    if (gamma > 90) gamma = 90;
+    if (gamma < -90) gamma = -90;
+
+    sensorData = { beta, gamma };
+
+    // Normalize and scale the input
+    // Gamma (left/right): -90 to 90 -> -1 to 1
+    const tiltX = gamma / 90;
+
+    // Beta (front/back): -90 to 90 -> -1 to 1
+    // We use 90 here to make it more responsive than 180
+    const tiltY = beta / 90;
 
     const { width, height } = dimensions;
     const centerX = width / 2;
     const centerY = height / 2;
-    // Make the movement scale responsive to the screen width
-    const moveScale = width * 0.4;
+
+    // Responsive movement scale
+    const moveScale = width * 0.35;
 
     // Update targets based on tilt
+    // P1 moves with tilt
     state.p1.target.x = centerX + tiltX * moveScale;
     state.p1.target.y = centerY + tiltY * moveScale;
 
-    // P2 can mirror or have its own logic
+    // P2 mirrors P1
     state.p2.target.x = centerX - tiltX * moveScale;
     state.p2.target.y = centerY - tiltY * moveScale;
 }
 
 function requestSensorAccess() {
+    // Check for HTTPS (required for sensors on many devices)
+    if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+        alert("Warning: Sensors might not work over HTTP. Please use HTTPS.");
+    }
+
     if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
         // iOS 13+
         DeviceOrientationEvent.requestPermission()
@@ -79,15 +103,24 @@ function requestSensorAccess() {
                 if (permissionState === 'granted') {
                     window.addEventListener('deviceorientation', handleOrientation);
                     isSensorControlActive = true;
-                    enableSensorsBtn.style.display = 'none'; // Hide button after granting
+                    enableSensorsBtn.style.display = 'none';
+                } else {
+                    alert("Permission to access sensors was denied.");
                 }
             })
-            .catch(console.error);
+            .catch(error => {
+                console.error(error);
+                alert("Error requesting sensor permission: " + error.message);
+            });
     } else {
         // Android or non-iOS 13+
-        window.addEventListener('deviceorientation', handleOrientation);
-        isSensorControlActive = true;
-        enableSensorsBtn.style.display = 'none';
+        try {
+            window.addEventListener('deviceorientation', handleOrientation);
+            isSensorControlActive = true;
+            enableSensorsBtn.style.display = 'none';
+        } catch (e) {
+            alert("Error enabling sensors: " + e.message);
+        }
     }
 }
 
@@ -296,6 +329,20 @@ function updateInfoPanel() {
     const pt = BezierMath.getPoint(t, p0, p1.pos, p2.pos, p3);
     const tan = BezierMath.getTangent(t, p0, p1.pos, p2.pos, p3);
 
+    let sensorInfo = '';
+    if (isSensorControlActive) {
+        sensorInfo = `
+        <div class="section">
+            <div class="section-title">Sensor Data</div>
+            <div class="grid-row">
+                <span class="label">Beta (X):</span> <span>${Math.round(sensorData.beta)}°</span>
+            </div>
+            <div class="grid-row">
+                <span class="label">Gamma (Y):</span> <span>${Math.round(sensorData.gamma)}°</span>
+            </div>
+        </div>`;
+    }
+
     infoPanel.innerHTML = `
         <div class="section">
             <div class="section-title">Control Points</div>
@@ -312,6 +359,8 @@ function updateInfoPanel() {
                 <span class="label">P3:</span> <span>(${Math.round(p3.x)}, ${Math.round(p3.y)})</span>
             </div>
         </div>
+
+        ${sensorInfo}
 
         <div class="section">
             <div class="cursor-title">Cursor (t ≈ ${t.toFixed(2)})</div>
