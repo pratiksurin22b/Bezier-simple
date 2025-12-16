@@ -53,9 +53,50 @@
         .grid-row-cursor { display: grid; grid-template-columns: 80px 1fr; gap: 10px; font-size: 16px; line-height: 1.5; }
         .label { opacity: 0.7; }
         .cursor-title { color: #ffff00; font-weight: bold; margin-bottom: 10px; font-size: 18px; }
+
+        #sidebar-toggle {
+            display: none; /* Hidden by default */
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 20;
+            background: #fff;
+            border: 1px solid #000;
+            font-size: 24px;
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            line-height: 40px;
+            text-align: center;
+        }
+
+        /* Mobile Styles */
+        @media (max-width: 768px) {
+            #sidebar {
+                position: absolute;
+                left: -350px; /* Hidden by default */
+                top: 0;
+                height: 100%;
+                transition: left 0.3s ease;
+            }
+
+            #sidebar.active {
+                left: 0;
+            }
+
+            #sidebar-toggle {
+                display: block; /* Show the button on mobile */
+            }
+
+            #canvas {
+                width: 100vw !important;
+                height: 100vh !important;
+            }
+        }
     </style>
 </head>
 <body>
+    <button id="sidebar-toggle">&#9776;</button> <!-- Hamburger Icon -->
     <div id="sidebar">
         <h1>Bezier Curve Simulation</h1>
         <div id="info-panel"></div>
@@ -73,7 +114,7 @@
                 <label class="label" for="line-length">Line Length</label>
                 <input type="range" id="line-length" min="100" max="1000" value="200">
             </div>
-            <div class="grid-row" style="margin-bottom: 10px;">
+<div class="grid-row" style="margin-bottom: 10px;">
                 <label class="label" for="tangent-length">Tangent Length</label>
                 <input type="range" id="tangent-length" min="10" max="200" value="100">
             </div>

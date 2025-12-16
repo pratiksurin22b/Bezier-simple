@@ -4,10 +4,14 @@ const infoPanel = document.getElementById('info-panel');
 const controlModeInput = document.getElementById('control-mode');
 const lineLengthInput = document.getElementById('line-length');
 const tangentLengthInput = document.getElementById('tangent-length');
+const sidebar = document.getElementById('sidebar');
+const sidebarToggle = document.getElementById('sidebar-toggle');
+const enableSensorsBtn = document.getElementById('enable-sensors');
 
 // --- Global State ---
 let animationFrameId = null;
 let lastTime = 0;
+let isSensorControlActive = false;
 
 // --- Configuration ---
 const CONFIG = {
@@ -37,6 +41,61 @@ controlModeInput.addEventListener('change', (e) => {
     CONFIG.controlMode = e.target.value;
     resetAndStart();
 });
+
+sidebarToggle.addEventListener('click', () => {
+    sidebar.classList.toggle('active');
+});
+
+// --- Sensor Handling ---
+function handleOrientation(event) {
+    if (!isSensorControlActive) return;
+
+    const { beta, gamma } = event; // beta: front-back tilt, gamma: left-right tilt
+
+    // Normalize and scale the input
+    const tiltX = (gamma / 90); // Range: -1 to 1
+    const tiltY = (beta / 90);  // Range: -1 to 1
+
+    const { width, height } = dimensions;
+    const centerX = width / 2;
+    const centerY = height / 2;
+    const moveScale = 200; // How much the points move
+
+    // Update targets based on tilt
+    state.p1.target.x = centerX + tiltX * moveScale;
+    state.p1.target.y = centerY + tiltY * moveScale;
+
+    // P2 can mirror or have its own logic
+    state.p2.target.x = centerX - tiltX * moveScale;
+    state.p2.target.y = centerY - tiltY * moveScale;
+}
+
+function requestSensorAccess() {
+    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+        // iOS 13+
+        DeviceOrientationEvent.requestPermission()
+            .then(permissionState => {
+                if (permissionState === 'granted') {
+                    window.addEventListener('deviceorientation', handleOrientation);
+                    isSensorControlActive = true;
+                    enableSensorsBtn.style.display = 'none'; // Hide button after granting
+                }
+            })
+            .catch(console.error);
+    } else {
+        // Android or non-iOS 13+
+        window.addEventListener('deviceorientation', handleOrientation);
+        isSensorControlActive = true;
+        enableSensorsBtn.style.display = 'none';
+    }
+}
+
+// Show sensor button on mobile devices
+const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+if (isMobile) {
+    enableSensorsBtn.style.display = 'block';
+    enableSensorsBtn.addEventListener('click', requestSensorAccess);
+}
 
 // --- State Objects ---
 let dimensions = {
@@ -259,7 +318,8 @@ function updateInfoPanel() {
 
 // --- Event Handlers ---
 window.addEventListener('resize', () => {
-    dimensions.width = window.innerWidth - 350;
+    const isMobile = window.innerWidth <= 768;
+    dimensions.width = isMobile ? window.innerWidth : window.innerWidth - 350;
     dimensions.height = window.innerHeight;
     resetAndStart();
 });
@@ -290,6 +350,8 @@ window.addEventListener('mouseup', () => {
 });
 
 window.addEventListener('mousemove', (e) => {
+    if (isSensorControlActive) return; // Disable mouse control when sensors are active
+
     const rect = canvas.getBoundingClientRect();
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
