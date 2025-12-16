@@ -26,6 +26,8 @@
             box-sizing: border-box;
             color: #fff;
             z-index: 10;
+            overflow-y: auto; /* Enable scrolling */
+            -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
         }
 
         h1 {
@@ -35,10 +37,12 @@
             border-bottom: 2px solid #333;
             padding-bottom: 20px;
             line-height: 1.2;
+            flex-shrink: 0; /* Prevent title from shrinking */
         }
 
         #info-panel {
             flex: 1;
+            min-height: 200px; /* Ensure space for info */
         }
 
         canvas {
@@ -74,8 +78,9 @@
         @media (max-width: 768px) {
             #sidebar {
                 position: absolute;
-                left: -350px; /* Hidden by default */
+                left: -100%; /* Hidden by default */
                 top: 0;
+                width: 85%; /* Take up 85% of width on mobile */
                 height: 100%;
                 transition: left 0.3s ease;
             }

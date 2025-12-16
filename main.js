@@ -101,9 +101,17 @@ function requestSensorAccess() {
         DeviceOrientationEvent.requestPermission()
             .then(permissionState => {
                 if (permissionState === 'granted') {
+                    // Force Auto mode for physics to work
+                    if (CONFIG.controlMode !== 'auto') {
+                        CONFIG.controlMode = 'auto';
+                        controlModeInput.value = 'auto';
+                        resetAndStart();
+                    }
+
                     window.addEventListener('deviceorientation', handleOrientation);
                     isSensorControlActive = true;
                     enableSensorsBtn.style.display = 'none';
+                    alert("Sensors enabled! Tilt your device.");
                 } else {
                     alert("Permission to access sensors was denied.");
                 }
@@ -115,9 +123,22 @@ function requestSensorAccess() {
     } else {
         // Android or non-iOS 13+
         try {
-            window.addEventListener('deviceorientation', handleOrientation);
-            isSensorControlActive = true;
-            enableSensorsBtn.style.display = 'none';
+            // Check if the device actually supports the event
+            if (window.DeviceOrientationEvent) {
+                // Force Auto mode for physics to work
+                if (CONFIG.controlMode !== 'auto') {
+                    CONFIG.controlMode = 'auto';
+                    controlModeInput.value = 'auto';
+                    resetAndStart();
+                }
+
+                window.addEventListener('deviceorientation', handleOrientation);
+                isSensorControlActive = true;
+                enableSensorsBtn.style.display = 'none';
+                alert("Sensors enabled! Tilt your device.");
+            } else {
+                alert("DeviceOrientationEvent is not supported on this device.");
+            }
         } catch (e) {
             alert("Error enabling sensors: " + e.message);
         }
