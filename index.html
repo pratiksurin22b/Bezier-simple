@@ -119,14 +119,17 @@
                 <label class="label" for="line-length">Line Length</label>
                 <input type="range" id="line-length" min="100" max="1000" value="200">
             </div>
-<div class="grid-row" style="margin-bottom: 10px;">
+            <div class="grid-row" style="margin-bottom: 10px;">
                 <label class="label" for="tangent-length">Tangent Length</label>
                 <input type="range" id="tangent-length" min="10" max="200" value="100">
             </div>
         </div>
-
-        <button id="enable-sensors" style="display: none; margin-top: 20px; padding: 10px; background: #00ffff; border: none; cursor: pointer; font-weight: bold;">Enable Sensors</button>
     </div>
+
+    <button id="enable-sensors" style="display: none; position: absolute; bottom: 50px; left: 50%; transform: translateX(-50%); z-index: 100; padding: 15px 30px; background: #00ffff; color: #000; border: none; border-radius: 25px; font-size: 16px; font-weight: bold; box-shadow: 0 0 20px rgba(0, 255, 255, 0.5); cursor: pointer;">
+        Enable Sensors
+    </button>
+
     <canvas id="canvas"></canvas>
 
     <script src="math.js"></script>

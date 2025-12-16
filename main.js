@@ -20,13 +20,21 @@ const CONFIG = {
     tangentLength: 100,
     stiffness: 80,   // Internal value for auto mode
     damping: 10,     // Internal value for auto mode
-    lineLength: 200,
+    lineLength: 200,        // Pixel value for Desktop
+    lineLengthPercent: 0.6, // Percentage for Mobile (0.1 to 0.9)
     controlMode: 'auto' // 'auto' or 'manual'
 };
 
 // --- Event Listeners ---
 lineLengthInput.addEventListener('input', (e) => {
-    CONFIG.lineLength = parseFloat(e.target.value);
+    const isMobile = window.innerWidth <= 768;
+    if (isMobile) {
+        // Slider value is 10-90, convert to 0.1-0.9
+        CONFIG.lineLengthPercent = parseFloat(e.target.value) / 100;
+    } else {
+        // Slider value is pixels (e.g., 100-1000)
+        CONFIG.lineLength = parseFloat(e.target.value);
+    }
     resetAndStart();
 });
 
@@ -190,10 +198,24 @@ function resetAndStart() {
     dimensions.width = isMobile ? window.innerWidth : window.innerWidth - 350;
     dimensions.height = window.innerHeight;
 
-    // Adjust line length for mobile
+    let lineLength;
+
     if (isMobile) {
-        CONFIG.lineLength = dimensions.width * 0.6; // 60% of screen width
-        lineLengthInput.value = CONFIG.lineLength; // Update slider
+        // Mobile: Use percentage
+        lineLength = dimensions.width * CONFIG.lineLengthPercent;
+
+        // Update slider UI for percentage (10-90)
+        lineLengthInput.min = 10;
+        lineLengthInput.max = 90;
+        lineLengthInput.value = CONFIG.lineLengthPercent * 100;
+    } else {
+        // Desktop: Use fixed pixels
+        lineLength = CONFIG.lineLength;
+
+        // Update slider UI for pixels (100-1000)
+        lineLengthInput.min = 100;
+        lineLengthInput.max = 1000;
+        lineLengthInput.value = CONFIG.lineLength;
     }
 
     // Reset canvas and anchor points
@@ -201,8 +223,8 @@ function resetAndStart() {
     canvas.height = dimensions.height;
     const cx = dimensions.width / 2;
     const cy = dimensions.height / 2;
-    state.p0 = { x: cx - CONFIG.lineLength / 2, y: cy };
-    state.p3 = { x: cx + CONFIG.lineLength / 2, y: cy };
+    state.p0 = { x: cx - lineLength / 2, y: cy };
+    state.p3 = { x: cx + lineLength / 2, y: cy };
 
     // Initialize control points based on mode
     if (CONFIG.controlMode === 'auto') {
@@ -431,6 +453,47 @@ canvas.addEventListener('mousedown', (e) => {
 });
 
 window.addEventListener('mouseup', () => {
+    isDragging = false;
+    draggedPoint = null;
+});
+
+// --- Touch Support for Mobile Manual Mode ---
+canvas.addEventListener('touchstart', (e) => {
+    if (CONFIG.controlMode !== 'manual') return;
+    e.preventDefault(); // Prevent scrolling
+
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.touches[0];
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
+
+    const distP1 = Vec2.mag(Vec2.sub({x, y}, state.p1.pos));
+    const distP2 = Vec2.mag(Vec2.sub({x, y}, state.p2.pos));
+    const hitRadius = 40; // Larger hit area for touch
+
+    if (distP1 < hitRadius) {
+        isDragging = true;
+        draggedPoint = state.p1;
+    } else if (distP2 < hitRadius) {
+        isDragging = true;
+        draggedPoint = state.p2;
+    }
+}, { passive: false });
+
+canvas.addEventListener('touchmove', (e) => {
+    if (CONFIG.controlMode !== 'manual' || !isDragging || !draggedPoint) return;
+    e.preventDefault();
+
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.touches[0];
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
+
+    draggedPoint.pos = { x, y };
+    draw();
+}, { passive: false });
+
+canvas.addEventListener('touchend', () => {
     isDragging = false;
     draggedPoint = null;
 });
